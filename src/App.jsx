@@ -17,12 +17,13 @@ import {
 
 /** 🔧 Firebase config — replace with your project settings (safe to expose) */
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyAx2Qdx_Vm7CebcvljltJ4uVKUCIaFMMqo",
+  authDomain: "homework-group-helper.firebaseapp.com",
+  projectId: "homework-group-helper",
+  storageBucket: "homework-group-helper.firebasestorage.app",
+  messagingSenderId: "1082497052150",
+  appId: "1:1082497052150:web:adba36fd6bd5f20189abd7",
+  measurementId: "G-CGR3CXQ6DG"
 };
 if (!getApps().length) initializeApp(firebaseConfig);
 
