@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { deleteDoc, getDocs } from "firebase/firestore";
+
 import {
   initializeApp, getApps
 } from "firebase/app";
@@ -77,6 +79,36 @@ const Rank = (pts) => {
   if (pts >= 250) return { name: "Silver Helper", className: "pill" };
   return { name: "Helper", className: "pill" };
 };
+
+
+
+async function deleteQuestionDeep(qid) {
+  // delete all posts under this question, then the question
+  const postsSnap = await getDocs(query(collection(db, "posts"), where("questionId","==", qid)));
+  await Promise.all(postsSnap.docs.map(d => deleteDoc(doc(db, "posts", d.id))));
+  await deleteDoc(doc(db, "questions", qid));
+}
+
+function useIsModerator() {
+  const { user } = useAuth();
+  const [isMod, setIsMod] = React.useState(false);
+  React.useEffect(() => {
+    if (!user) { setIsMod(false); return; }
+    const uref = doc(db, "moderators", user.uid);
+    return onSnapshot(uref, (snap) => setIsMod(snap.exists()), () => setIsMod(false));
+  }, [user?.uid]);
+  return isMod;
+}
+
+async function deleteClassIfEmpty(cid) {
+  const qsSnap = await getDocs(query(collection(db, "questions"), where("classId","==", cid)));
+  if (!qsSnap.empty) {
+    alert("Class has questions. Delete/move them first.");
+    return false;
+  }
+  await deleteDoc(doc(db, "classes", cid));
+  return true;
+}
 
 /** UI atoms (no external UI lib) */
 const Button = ({ className="", style={}, ...props }) => (
@@ -197,6 +229,7 @@ function NewQuestionDialog({ onClose, currentClassId }) {
         classId,
         createdAt: serverTimestamp(),
         authorId: user.uid,
+        createdAtMs: Date.now(),
         authorName: user.displayName,
         authorPhoto: user.photoURL,
         attachmentURL,
@@ -233,43 +266,148 @@ function NewQuestionDialog({ onClose, currentClassId }) {
 
 /** Feed */
 function QuestionsFeed({ activeClassId, onOpen }) {
-  const [search, setSearch] = useState("");
-  const questions = useColl("questions", [orderBy("createdAt", "desc")]);
-  const classes = useColl("classes", []);
-  const classNameById = useMemo(()=>Object.fromEntries(classes.map(c=>[c.id, c.name])), [classes]);
+  const { user } = useAuth();
+  // Use moderator hook if you added it; otherwise default to false
+  const isModerator = typeof useIsModerator === "function" ? useIsModerator() : false;
 
-  const filtered = useMemo(()=> {
-    return questions
-      .filter((q)=> !activeClassId || q.classId===activeClassId)
-      .filter((q)=> !search.trim() || (q.title?.toLowerCase().includes(search.toLowerCase()) || q.body?.toLowerCase().includes(search.toLowerCase())));
+  const [search, setSearch] = useState("");
+
+  // Prefer numeric timestamp for reliable ordering; falls back below if some docs lack it
+  const questions = useColl("questions", [orderBy("createdAtMs", "desc")]);
+  const classes = useColl("classes", []);
+  const classNameById = useMemo(
+    () => Object.fromEntries(classes.map((c) => [c.id, c.name])),
+    [classes]
+  );
+
+  // Delete a question and all its replies
+  const deleteQuestionDeep = async (qid) => {
+    try {
+      // delete posts first
+      const postsSnap = await getDocs(
+        query(collection(db, "posts"), where("questionId", "==", qid))
+      );
+      await Promise.all(
+        postsSnap.docs.map((d) => deleteDoc(doc(db, "posts", d.id)))
+      );
+      // then delete the question
+      await deleteDoc(doc(db, "questions", qid));
+      // (optional) no need to manually decrement postsCount since question is gone
+    } catch (e) {
+      console.error("Delete question failed:", e);
+      alert("Failed to delete: " + (e?.message || e));
+    }
+  };
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const base = questions
+      .filter((q) => !activeClassId || q.classId === activeClassId)
+      .filter(
+        (q) =>
+          !term ||
+          q.title?.toLowerCase().includes(term) ||
+          q.body?.toLowerCase().includes(term)
+      );
+
+    // Ensure consistent ordering even if some docs are missing createdAtMs
+    return base.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
   }, [questions, activeClassId, search]);
+
+  // Helper to show a readable timestamp
+  const prettyTime = (q) => {
+    if (q?.createdAt?.toDate) {
+      try {
+        return new Date(q.createdAt.toDate()).toLocaleString();
+      } catch {}
+    }
+    if (q?.createdAtMs) return new Date(q.createdAtMs).toLocaleString();
+    return "";
+  };
 
   return (
     <div>
-      <div className="row" style={{gap:8, marginBottom:12}}>
-        <input className="input" placeholder="Search questions" value={search} onChange={(e)=>setSearch(e.target.value)} />
+      <div className="row" style={{ gap: 8, marginBottom: 12 }}>
+        <input
+          className="input"
+          placeholder="Search questions"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
-      <div className="grid" style={{gridTemplateColumns:"1fr 1fr 1fr"}}>
+
+      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
         <AnimatePresence mode="popLayout">
-          {filtered.map((q)=>(
-            <motion.div key={q.id} layout initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}>
+          {filtered.map((q) => (
+            <motion.div
+              key={q.id}
+              layout
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
               <Card className="pad">
                 <div className="row-justify">
-                  <div className="row" style={{gap:8}}>
-                    <div className="avatar">{q.authorName?.[0]||"?"}</div>
+                  <div className="row" style={{ gap: 8 }}>
+                    <div className="avatar">{q.authorName?.[0] || "?"}</div>
                     <div>
-                      <div className="small" style={{fontWeight:700}}>{q.authorName||"Anon"}</div>
-                      <div className="small muted">{q.createdAt?.toDate ? new Date(q.createdAt.toDate()).toLocaleString() : ""}</div>
+                      <div className="small" style={{ fontWeight: 700 }}>
+                        {q.authorName || "Anon"}
+                      </div>
+                      <div className="small muted">{prettyTime(q)}</div>
                     </div>
                   </div>
-                  <span className="pill">{classNameById[q.classId] || "Class"}</span>
+                  <span className="pill">
+                    {classNameById[q.classId] || "Class"}
+                  </span>
                 </div>
-                <div style={{marginTop:8, fontWeight:800, color:"var(--green-700)"}}>{q.title}</div>
-                <div className="muted" style={{marginTop:6}}>{q.body}</div>
-                {q.attachmentURL && <img className="img" src={q.attachmentURL} alt="attachment" />}
-                <div className="row" style={{justifyContent:"space-between", marginTop:10}}>
-                  <Button className="ghost" onClick={()=>onOpen(q)}>{q.postsCount||0} replies</Button>
-                  <Button className="green" onClick={()=>onOpen(q)}>Open</Button>
+
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontWeight: 800,
+                    color: "var(--green-700)",
+                  }}
+                >
+                  {q.title}
+                </div>
+                <div className="muted" style={{ marginTop: 6 }}>
+                  {q.body}
+                </div>
+                {q.attachmentURL && (
+                  <img className="img" src={q.attachmentURL} alt="attachment" />
+                )}
+
+                <div
+                  className="row"
+                  style={{ justifyContent: "space-between", marginTop: 10 }}
+                >
+                  <Button className="ghost" onClick={() => onOpen(q)}>
+                    {q.postsCount || 0} replies
+                  </Button>
+
+                  <div className="row" style={{ gap: 8 }}>
+                    {user && (isModerator || user.uid === q.authorId) && (
+                      <Button
+                        className="ghost"
+                        onClick={async () => {
+                          if (
+                            confirm(
+                              "Delete this question and ALL its replies?"
+                            )
+                          ) {
+                            await deleteQuestionDeep(q.id);
+                          }
+                        }}
+                        title="Delete question"
+                      >
+                        🗑️
+                      </Button>
+                    )}
+                    <Button className="green" onClick={() => onOpen(q)}>
+                      Open
+                    </Button>
+                  </div>
                 </div>
               </Card>
             </motion.div>
@@ -281,71 +419,158 @@ function QuestionsFeed({ activeClassId, onOpen }) {
 }
 
 /** Question detail */
-function QuestionDetail({ q, onClose }){
-  const posts = useColl("posts", [where("questionId","==", q?.id || "__"), orderBy("createdAt","asc")]);
+function QuestionDetail({ q, onClose }) {
   const { user } = useAuth();
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
+  const isModerator = typeof useIsModerator === "function" ? useIsModerator() : false;
+
+  const [posts, setPosts] = React.useState([]);
+  const [text, setText] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+
+  // ✅ Load replies without orderBy; sort on client by createdAtMs
+  React.useEffect(() => {
+    if (!q?.id) return;
+    const unsub = onSnapshot(
+      query(collection(db, "posts"), where("questionId", "==", q.id)),
+      (snap) => {
+        const arr = [];
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
+        arr.sort((a, b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
+        setPosts(arr);
+      },
+      (err) => console.error("posts onSnapshot error", err)
+    );
+    return () => unsub();
+  }, [q?.id]);
 
   const addPost = async () => {
     if (!user) return alert("Sign in to reply");
-    const t = text.trim(); if (!t) return;
-    try{
+    const t = text.trim();
+    if (!t) return;
+
+    try {
       setBusy(true);
       await addDoc(collection(db, "posts"), {
         questionId: q.id,
         text: t,
         createdAt: serverTimestamp(),
+        createdAtMs: Date.now(), // ✅ numeric fallback for ordering
         authorId: user.uid,
         authorName: user.displayName,
         authorPhoto: user.photoURL,
         helpful: 0,
       });
-      await updateDoc(doc(db, "questions", q.id), { postsCount: (q.postsCount||0)+1 });
+      await updateDoc(doc(db, "questions", q.id), {
+        postsCount: (q.postsCount || 0) + 1,
+      });
       setText("");
-    } finally { setBusy(false); }
+    } catch (e) {
+      console.error("Add reply failed:", e);
+      alert("Failed to reply: " + (e?.message || e));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const markHelpful = async (post) => {
     if (!user) return;
-    await updateDoc(doc(db, "users", post.authorId), { points: increment(10) });
-    await updateDoc(doc(db, "posts", post.id), { helpful: increment(1) });
-    alert("Marked helpful (+10 points)");
+    try {
+      await updateDoc(doc(db, "users", post.authorId), { points: increment(10) });
+      await updateDoc(doc(db, "posts", post.id), { helpful: increment(1) });
+      alert("Marked helpful (+10 points)");
+    } catch (e) {
+      console.error("Mark helpful failed:", e);
+      alert("Failed to mark helpful: " + (e?.message || e));
+    }
+  };
+
+  const deleteReply = async (postId) => {
+    if (!user) return;
+    if (!confirm("Delete this reply?")) return;
+    try {
+      await deleteDoc(doc(db, "posts", postId));
+    } catch (e) {
+      console.error("Delete reply failed:", e);
+      alert("Failed to delete: " + (e?.message || e));
+    }
   };
 
   return (
-    <div className="card pad" style={{position:"fixed", inset:"6% 6% auto 6%", background:"white", zIndex:60, maxHeight:"88vh", overflow:"auto"}}>
+    <div
+      className="card pad"
+      style={{
+        position: "fixed",
+        inset: "6% 6% auto 6%",
+        background: "white",
+        zIndex: 60,
+        maxHeight: "88vh",
+        overflow: "auto",
+      }}
+    >
       <div className="row-justify">
-        <div style={{fontWeight:800, color:"var(--green-700)"}}>{q?.title}</div>
-        <Button className="ghost" onClick={onClose}>Close</Button>
+        <div style={{ fontWeight: 800, color: "var(--green-700)" }}>{q?.title}</div>
+        <Button className="ghost" onClick={onClose}>
+          Close
+        </Button>
       </div>
-      <div className="row" style={{gap:8, marginTop:8}}>
-        <div className="avatar">{q?.authorName?.[0]||"?"}</div>
-        <div className="small" style={{fontWeight:700}}>{q?.authorName}</div>
+
+      <div className="row" style={{ gap: 8, marginTop: 8 }}>
+        <div className="avatar">{q?.authorName?.[0] || "?"}</div>
+        <div className="small" style={{ fontWeight: 700 }}>
+          {q?.authorName}
+        </div>
         <span className="pill right">Question</span>
       </div>
-      <div className="muted" style={{marginTop:8, whiteSpace:"pre-wrap"}}>{q?.body}</div>
+
+      <div className="muted" style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>
+        {q?.body}
+      </div>
       {q?.attachmentURL && <img className="img" src={q.attachmentURL} alt="attachment" />}
-      <div className="row" style={{gap:8, marginTop:12}}>
+
+      <div className="row" style={{ gap: 8, marginTop: 12 }}>
         <div className="small muted">Replies</div>
       </div>
-      <div className="list" style={{marginTop:8}}>
-        {posts.map((p)=>(
+
+      <div className="list" style={{ marginTop: 8 }}>
+        {posts.map((p) => (
           <div key={p.id} className="card pad">
-            <div className="row" style={{gap:8}}>
-              <div className="avatar">{p.authorName?.[0]||"?"}</div>
-              <div className="small" style={{fontWeight:700}}>{p.authorName}</div>
-              <div className="right helpful" onClick={()=>markHelpful(p)}>Helpful: {p.helpful||0}</div>
+            <div className="row" style={{ gap: 8 }}>
+              <div className="avatar">{p.authorName?.[0] || "?"}</div>
+              <div className="small" style={{ fontWeight: 700 }}>
+                {p.authorName}
+              </div>
+
+              {/* 🗑️ show only to owner or moderator */}
+              {user && (isModerator || user.uid === p.authorId) && (
+                <div className="right">
+                  <Button className="ghost" onClick={() => deleteReply(p.id)} title="Delete reply">
+                    🗑️
+                  </Button>
+                </div>
+              )}
+
+              <div className="right helpful" onClick={() => markHelpful(p)}>
+                Helpful: {p.helpful || 0}
+              </div>
             </div>
-            <div style={{marginTop:8, whiteSpace:"pre-wrap"}}>{p.text}</div>
+            <div style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{p.text}</div>
           </div>
         ))}
-        {posts.length===0 && <div className="muted">Be the first to reply.</div>}
+        {posts.length === 0 && <div className="muted">Be the first to reply.</div>}
       </div>
-      <div className="list" style={{marginTop:12}}>
-        <textarea className="input" rows="3" placeholder="Write a helpful reply" value={text} onChange={e=>setText(e.target.value)} />
-        <div className="row" style={{justifyContent:"flex-end"}}>
-          <Button className="green" disabled={busy} onClick={addPost}>{busy? "Posting..." : "Reply"}</Button>
+
+      <div className="list" style={{ marginTop: 12 }}>
+        <textarea
+          className="input"
+          rows="3"
+          placeholder="Write a helpful reply"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <div className="row" style={{ justifyContent: "flex-end" }}>
+          <Button className="green" disabled={busy} onClick={addPost}>
+            {busy ? "Posting..." : "Reply"}
+          </Button>
         </div>
       </div>
     </div>
