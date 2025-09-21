@@ -5,59 +5,194 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Homework Helper</title>
     <style>
-      :root {
-        --green-700:#047857;
-        --green-600:#059669;
-        --green-50:#ecfdf5;
-        --gold-500:#f59e0b;
-        --gold-300:#fcd34d;
-        --text:#0f172a;
-        --muted:#475569;
-        --border:#e5e7eb;
-        --card:#ffffff;
-      }
-      *{box-sizing:border-box}
-      body{
-        margin:0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-        color: var(--text);
-        background: linear-gradient(180deg, var(--green-50), #fffaf0);
-        min-height: 100vh;
-      }
-      .container{max-width:1100px;margin:0 auto;padding:16px}
-      header{
-        position:sticky; top:0; z-index:10; background:#ffffffcc; backdrop-filter: blur(6px);
-        border-bottom:1px solid var(--border); padding:10px 16px;
-        display:flex; align-items:center; justify-content:space-between;
-      }
-      .brand{display:flex;align-items:center;gap:10px}
-      .logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
-            background:var(--green-600);color:var(--gold-300);font-weight:800}
-      .title{font-weight:800;color:var(--green-700);line-height:1}
-      .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
-      .btn{cursor:pointer; border:none; border-radius:10px; padding:8px 12px; font-weight:700}
-      .btn.gold{background:var(--gold-500);color:#111827}
-      .btn.green{background:var(--green-600); color:white}
-      .btn.ghost{background:transparent; border:1px solid var(--border)}
-      .card{background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow: 0 1px 2px rgba(0,0,0,.04)}
-      .card.pad{padding:16px}
-      .grid{display:grid; gap:16px}
-      .grid-2{grid-template-columns: 1fr 320px}
-      .row{display:flex; gap:10px; align-items:center}
-      .row-justify{display:flex; align-items:center; justify-content:space-between}
-      .badge{display:inline-flex; align-items:center; gap:6px; background:#fff7ed; color:#7c2d12; border:1px solid #fed7aa; padding:3px 8px; border-radius:999px; font-size:12px; font-weight:700}
-      .input, textarea, select{width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border)}
-      textarea{resize:vertical}
-      .muted{color:var(--muted); font-size:13px}
-      .list{display:grid; gap:12px}
-      .avatar{width:32px;height:32px;border-radius:50%; background:#e2e8f0; display:grid;place-items:center; font-weight:700}
-      .link{color:var(--green-700); text-decoration:none}
-      .pill{border-radius:999px; background:#ecfccb; padding:4px 8px; display:inline-block; font-size:12px; color:#3f6212; border:1px solid #d9f99d}
-      .right{margin-left:auto}
-      .small{font-size:12px}
-      .helpful{display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); cursor:pointer}
-      .img{max-height:220px; width:100%; object-fit:cover; border-radius:12px; border:1px solid var(--border)}
-      @media (max-width: 1000px){ .grid-2{grid-template-columns: 1fr} .grid{grid-template-columns:1fr} }
+      /* ===== Modern neutral UI reset & tokens ===== */
+:root{
+  --bg: #0b1220;            /* deep slate gradient base */
+  --bg-2: #0f172a;
+  --surface: #0b1220;       /* app backdrop */
+  --panel: #111827;         /* cards */
+  --panel-2: #0f172a;       /* alt panels */
+  --text: #e5e7eb;          /* on dark */
+  --muted: #9aa4b2;         /* secondary text */
+  --border: rgba(255,255,255,0.08);
+
+  --primary: #7c8dfb;       /* soft indigo */
+  --primary-600: #6b7af5;
+  --primary-700: #5664ee;
+  --danger: #ef4444;
+
+  --radius: 16px;
+  --radius-sm: 12px;
+  --shadow: 0 8px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+  --shadow-sm: 0 4px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+
+  --ring: 0 0 0 3px rgba(124,141,251,0.25);
+  --focus: outline: none; box-shadow: var(--ring);
+}
+
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+  color: var(--text);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #1e293b 0%, rgba(30,41,59,0) 60%),
+    radial-gradient(1000px 600px at 110% 10%, #111827 0%, rgba(17,24,39,0) 55%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+}
+
+/* ===== Layout helpers you already use ===== */
+.row{display:flex; gap:10px; align-items:center;}
+.row-justify{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.grid{display:grid; gap:16px}
+@media (min-width: 1024px){ .grid{gap:18px} }
+@media (max-width: 960px){ .grid{grid-template-columns: 1fr !important} }
+@media (min-width: 961px) and (max-width: 1280px){ .grid{grid-template-columns: 1fr 1fr !important} }
+
+/* ===== Panels / cards ===== */
+.card{
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.card.pad{ padding:16px }
+.card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+  border-color: rgba(124,141,251,0.35);
+}
+
+/* ===== Typography bits you use ===== */
+.small{ font-size: 12px; line-height: 1.3 }
+.muted{ color: var(--muted) }
+.pill{
+  background: rgba(124,141,251,0.12);
+  color: #cbd5ff;
+  border: 1px solid rgba(124,141,251,0.25);
+  padding: 4px 10px; border-radius: 999px; font-size: 12px;
+}
+
+/* ===== Buttons (your Button uses className) ===== */
+button, .button, .btn, .Button, .green, .ghost{
+  font: inherit;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background-color .12s ease, color .12s ease;
+  box-shadow: var(--shadow-sm);
+}
+button:hover, .button:hover, .btn:hover, .Button:hover, .green:hover, .ghost:hover{
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+button:active, .button:active, .btn:active, .Button:active, .green:active, .ghost:active{
+  transform: translateY(0);
+}
+
+/* Primary action (overrides your .green to a neutral “primary”) */
+.green{
+  background: linear-gradient(180deg, var(--primary), var(--primary-600));
+  border-color: rgba(124,141,251,0.5);
+  color: #0b1020;
+  font-weight: 700;
+}
+.green:hover{
+  background: linear-gradient(180deg, var(--primary-600), var(--primary-700));
+  border-color: rgba(124,141,251,0.65);
+}
+
+/* Ghost / subtle button */
+.ghost{
+  background: rgba(255,255,255,0.02);
+  color: var(--text);
+}
+
+/* Destructive icon/button helper (for 🗑️) */
+.danger{
+  border-color: rgba(239,68,68,0.35);
+  background: rgba(239,68,68,0.08);
+  color: #fecaca;
+}
+.danger:hover{
+  border-color: rgba(239,68,68,0.6);
+  background: rgba(239,68,68,0.12);
+}
+
+/* ===== Inputs & textareas ===== */
+.input, input[type="text"], input[type="search"], textarea{
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  outline: none;
+  transition: box-shadow .12s ease, border-color .12s ease, background-color .12s ease;
+}
+.input:focus, input[type="text"]:focus, input[type="search"]:focus, textarea:focus{
+  border-color: rgba(124,141,251,0.4);
+  box-shadow: var(--ring);
+  background: rgba(255,255,255,0.04);
+}
+
+/* ===== Avatar / helpful ===== */
+.avatar{
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  color: #cbd5e1; font-weight: 800; border: 1px solid var(--border);
+}
+.helpful{
+  margin-left: auto;
+  color: #cbd5ff;
+  border: 1px dashed rgba(124,141,251,0.4);
+  padding: 6px 10px; border-radius: 999px;
+  cursor: pointer;
+  transition: background-color .12s ease, border-color .12s ease;
+}
+.helpful:hover{
+  background: rgba(124,141,251,0.1);
+  border-color: rgba(124,141,251,0.6);
+}
+
+/* ===== Images/attachments ===== */
+.img{
+  margin-top: 10px;
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  object-fit: cover;
+  max-height: 360px;
+}
+
+/* ===== App header / shell (optional) ===== */
+.app-header{
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(11,16,32,0.85), rgba(11,16,32,0.65));
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+}
+.app-title{
+  font-weight: 900;
+  letter-spacing: .5px;
+}
+
+/* ===== Dialog (your QuestionDetail uses fixed card) ===== */
+.card.pad[style*="position: fixed"]{
+  background: linear-gradient(180deg, rgba(17,24,39,0.98), rgba(17,24,39,0.96));
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ===== Lists ===== */
+.list{ display: grid; gap: 10px }
     </style>
   </head>
   <body>
