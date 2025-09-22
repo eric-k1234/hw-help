@@ -624,54 +624,35 @@ export default function App(){
   const [selected, setSelected] = useState(null);
 
   return (
-    <div>
-      <header>
-        <div className="brand">
-          <div className="logo">HH</div>
-        </div>
-        <div className="row">
-          {!loading && (user ? <UserMenu user={user}/> : <SignIn/>)}
-        </div>
-      </header>
-
-      <main className="container grid grid-2">
-        <div className="grid">
-          <div className="card pad">
-            <div className="row-justify">
-              <div>
-                <div style={{fontWeight:800, color:"var(--green-700)"}}>{activeClassId? "Class questions":"All questions"}</div>
-                <div className="muted">Upload questions, get help, and help others.</div>
-              </div>
-              <span className="pill">Green & Gold</span>
-            </div>
-          </div>
-          <div className="row" style={{justifyContent:"space-between"}}>
-            <NewQuestion currentClassId={activeClassId} />
-          </div>
-          <QuestionsFeed activeClassId={activeClassId} onOpen={(q)=>setSelected(q)} />
-        </div>
-
-        <div className="grid">
-          <ClassSidebar activeClassId={activeClassId} onSelect={setActiveClassId} />
-          <Rewards/>
-          <Leaderboard/>
-          <Card className="pad">
-            <div style={{fontWeight:800, color:"var(--green-700)"}}>Tips</div>
-            <ul className="muted">
-              <li>Use clear titles like “Unit 3: Chain Rule #7”.</li>
-              <li>Attach a photo of the problem to get faster help.</li>
-              <li>Mark replies as helpful to reward helpers (+10 points).</li>
-            </ul>
-          </Card>
-        </div>
+    // In App.jsx (inside the return of App())
+<div className="shell">
+  <div className="container">
+    <div className="layout">
+      {/* LEFT: Questions take most space */}
+      <main className="main">
+        <QuestionsFeed
+          activeClassId={activeClassId}
+          onOpen={(q)=>{ setActiveQuestion(q); }}
+        />
       </main>
 
-      <footer className="container small muted" style={{marginTop:24, textAlign:"center"}}>
-        © {new Date().getFullYear()} Homework Helper — green & gold
-      </footer>
-
-      {selected && <QuestionDetail q={selected} onClose={()=>setSelected(null)} />}
+      {/* RIGHT: Sidebar stack */}
+      <aside className="side">
+        {/* Optional school picker if you added it; otherwise remove */}
+        {/* <SchoolPicker activeSchoolId={activeSchoolId} onChange={setActiveSchoolId} /> */}
+        <ClassSidebar
+          activeClassId={activeClassId}
+          onSelect={setActiveClassId}
+        />
+        <Leaderboard />
+      </aside>
     </div>
+  </div>
+
+  {activeQuestion && (
+    <QuestionDetail q={activeQuestion} onClose={()=>setActiveQuestion(null)} />
+  )}
+</div>
   );
 }
 
