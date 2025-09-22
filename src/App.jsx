@@ -628,10 +628,6 @@ export default function App(){
       <header>
         <div className="brand">
           <div className="logo">HH</div>
-          <div>
-            <div className="title">Homework Helper</div>
-            <div className="subtitle">Study together • Rank up • Win monthly rewards</div>
-          </div>
         </div>
         <div className="row">
           {!loading && (user ? <UserMenu user={user}/> : <SignIn/>)}
