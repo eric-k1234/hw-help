@@ -652,31 +652,6 @@ function TipsCard() {
   );
 }
 
-function Leaderboard() {
-  const top = useColl("users", [orderBy("points", "desc"), limit(5)]);
-  return (
-    <Card className="pad">
-      <div className="row-justify">
-        <div style={{ fontWeight: 800 }}>Leaderboard</div>
-        <span className="pill">Monthly</span>
-      </div>
-      <div className="list" style={{ marginTop: 8 }}>
-        {top.map((u, i) => (
-          <div key={u.uid} className="row" style={{ justifyContent: "space-between" }}>
-            <div className="row" style={{ gap: 8 }}>
-              <div className="avatar">{(u.username || u.displayName || "U")[0]}</div>
-              <div>
-                <div style={{ fontWeight: 700 }}>{u.username || u.displayName || "Student"}</div>
-                <div className="small muted">#{i + 1}</div>
-              </div>
-            </div>
-            <div className="pill">{u.points || 0} pts</div>
-          </div>
-        ))}
-        {top.length === 0 && <div className="muted">No points yet — be the first!</div>}
-      </div>
-    </Card>
-  );
 }
 function HeaderBar() {
   const { user } = useAuth();
