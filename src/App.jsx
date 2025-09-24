@@ -16,6 +16,26 @@ import {
 import {
   getStorage, ref as storageRef, uploadBytes, getDownloadURL
 } from "firebase/storage";
+function SignInButton(){
+  const login = async () => {
+    await signInWithPopup(getAuth(), new GoogleAuthProvider());
+  };
+  return <Button className="green" onClick={login}>Sign in</Button>;
+}
+
+function UserMenuCompact(){
+  const { user } = useAuth();
+  const logout = async () => { await signOut(getAuth()); };
+  return (
+    <div className="row" style={{ gap: 8 }}>
+      <div className="avatar">{(user?.displayName || "U")[0]}</div>
+      <div className="small muted" style={{ maxWidth: 180, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {user?.displayName || user?.email}
+      </div>
+      <Button className="ghost" onClick={logout}>Sign out</Button>
+    </div>
+  );
+}
 
 /** 🔧 Firebase config — replace with your project settings (safe to expose) */
 const firebaseConfig = {
@@ -616,53 +636,153 @@ function Rewards(){
     </Card>
   );
 }
+function TipsCard() {
+  return (
+    <Card className="pad">
+      <div className="row-justify">
+        <div style={{ fontWeight: 800 }}>Study Tips</div>
+        <span className="pill">Gold</span>
+      </div>
+      <ul className="muted" style={{ marginTop: 8, paddingLeft: 16 }}>
+        <li>Ask one clear question per post.</li>
+        <li>Show your work; say where you’re stuck.</li>
+        <li>Mark helpful replies to reward helpers.</li>
+      </ul>
+    </Card>
+  );
+}
 
-/** App Shell */
-export default function App(){
-  // one declaration each — no duplicates
-  const [activeClassId, setActiveClassId] = React.useState(null);
-  const [activeQuestion, setActiveQuestion] = React.useState(null);
-  
-  // if you also use these, keep them — but don’t re-declare above/below
-  const { user, loading } = useAuth();
-  const [selected, setSelected] = React.useState(null);
- return (
-  <div className="shell">
-    <div className="container">
-      <div className="layout">
-        {/* LEFT: questions */}
-        <main className="main">
-          {/* Keep your existing QuestionsFeed call here */}
-          <QuestionsFeed
-            activeClassId={activeClassId}
-            onOpen={(q) => setActiveQuestion(q)}
-          />
-        </main>
+function Leaderboard() {
+  const top = useColl("users", [orderBy("points", "desc"), limit(5)]);
+  return (
+    <Card className="pad">
+      <div className="row-justify">
+        <div style={{ fontWeight: 800 }}>Leaderboard</div>
+        <span className="pill">Monthly</span>
+      </div>
+      <div className="list" style={{ marginTop: 8 }}>
+        {top.map((u, i) => (
+          <div key={u.uid} className="row" style={{ justifyContent: "space-between" }}>
+            <div className="row" style={{ gap: 8 }}>
+              <div className="avatar">{(u.username || u.displayName || "U")[0]}</div>
+              <div>
+                <div style={{ fontWeight: 700 }}>{u.username || u.displayName || "Student"}</div>
+                <div className="small muted">#{i + 1}</div>
+              </div>
+            </div>
+            <div className="pill">{u.points || 0} pts</div>
+          </div>
+        ))}
+        {top.length === 0 && <div className="muted">No points yet — be the first!</div>}
+      </div>
+    </Card>
+  );
+}
+function HeaderBar() {
+  const { user } = useAuth();
 
-        {/* RIGHT: sidebar */}
-        <aside className="side">
-          {/* If you have a school picker, keep it; otherwise delete this line */}
-          {/* <SchoolPicker activeSchoolId={activeSchoolId} onChange={setActiveSchoolId} /> */}
+  return (
+    <div className="app-header" style={{
+      position: "sticky", top: 0, zIndex: 50,
+      backdropFilter: "blur(14px)",
+      background: "linear-gradient(180deg, rgba(255,255,255,.75), rgba(255,255,255,.55))",
+      borderBottom: "1px solid rgba(16,185,129,.18)",
+      padding: "12px 16px", marginBottom: 12,
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      borderRadius: "0 0 18px 18px",
+      boxShadow: "0 10px 28px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.55)",
+    }}>
+      <div style={{ fontWeight: 800, letterSpacing: ".2px" }}>
+        <span style={{
+          background: "linear-gradient(90deg, var(--au-400), var(--em-600))",
+          WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent"
+        }}>
+          Homework Helper
+        </span>
+      </div>
 
-          {/* Classes list — make sure your ClassSidebar accepts these props */}
-          <ClassSidebar
-            activeClassId={activeClassId}
-            onSelect={setActiveClassId}
-          />
-
-          {/* If you don't have a Leaderboard component yet, comment this out */}
-          {/* <Leaderboard /> */}
-        </aside>
+      <div>
+        {user ? <UserMenuCompact /> : <SignInButton />}
       </div>
     </div>
-
-    {activeQuestion && (
-      <QuestionDetail q={activeQuestion} onClose={() => setActiveQuestion(null)} />
-    )}
-  </div>
-);
-
+  );
 }
+<div className="row-justify" style={{ marginBottom: 10 }}>
+  <div style={{ fontWeight: 900, letterSpacing: ".3px" }}>Questions</div>
+  <div className="row" style={{ gap: 8 }}>
+    <Button
+      className="ghost"
+      onClick={() => window.dispatchEvent(new CustomEvent("open-new-question"))}
+      title="Post a new question"
+    >
+      + New Question
+    </Button>
+  </div>
+</div>
+
+/** App Shell */
+/** App Shell */
+export default function App(){
+  // state (declare once)
+  const [activeClassId, setActiveClassId] = React.useState(null);
+  const [activeQuestion, setActiveQuestion] = React.useState(null);
+  const [showNewQuestion, setShowNewQuestion] = React.useState(false);
+
+  const { user, loading } = useAuth();
+
+  // global event so feed header button can open the dialog
+  React.useEffect(() => {
+    const open = () => setShowNewQuestion(true);
+    window.addEventListener("open-new-question", open);
+    return () => window.removeEventListener("open-new-question", open);
+  }, []);
+
+  return (
+    <div className="shell">
+      {/* Slim header with Sign in / User menu */}
+      <HeaderBar />
+
+      <div className="container">
+        <div className="layout">
+          {/* LEFT: questions */}
+          <main className="main">
+            {/* Tip: put the + New Question button inside QuestionsFeed header */}
+            <QuestionsFeed
+              activeClassId={activeClassId}
+              onOpen={(q) => setActiveQuestion(q)}
+              onNew={() => setShowNewQuestion(true)}  // optional direct prop
+            />
+          </main>
+
+          {/* RIGHT: sidebar */}
+          <aside className="side">
+            <ClassSidebar
+              activeClassId={activeClassId}
+              onSelect={setActiveClassId}
+            />
+            <TipsCard />
+            <Leaderboard />
+          </aside>
+        </div>
+      </div>
+
+      {activeQuestion && (
+        <QuestionDetail
+          q={activeQuestion}
+          onClose={() => setActiveQuestion(null)}
+        />
+      )}
+
+      {showNewQuestion && (
+        <NewQuestionDialog
+          activeClassId={activeClassId}
+          onClose={() => setShowNewQuestion(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 
 /** Firestore collections created on write:
  * - users { uid, displayName, photoURL, email, points, createdAt }
