@@ -619,41 +619,48 @@ function Rewards(){
 
 /** App Shell */
 export default function App(){
+  const [activeClassId, setActiveClassId] = React.useState(null);
+  const [activeQuestion, setActiveQuestion] = React.useState(null);
   const { user, loading } = useAuth();
   const [activeClassId, setActiveClassId] = useState(null);
   const [selected, setSelected] = useState(null);
 
-  return (
-    // In App.jsx (inside the return of App())
-<div className="shell">
-  <div className="container">
-    <div className="layout">
-      {/* LEFT: Questions take most space */}
-      <main className="main">
-        <QuestionsFeed
-          activeClassId={activeClassId}
-          onOpen={(q)=>{ setActiveQuestion(q); }}
-        />
-      </main>
+ return (
+  <div className="shell">
+    <div className="container">
+      <div className="layout">
+        {/* LEFT: questions */}
+        <main className="main">
+          {/* Keep your existing QuestionsFeed call here */}
+          <QuestionsFeed
+            activeClassId={activeClassId}
+            onOpen={(q) => setActiveQuestion(q)}
+          />
+        </main>
 
-      {/* RIGHT: Sidebar stack */}
-      <aside className="side">
-        {/* Optional school picker if you added it; otherwise remove */}
-        {/* <SchoolPicker activeSchoolId={activeSchoolId} onChange={setActiveSchoolId} /> */}
-        <ClassSidebar
-          activeClassId={activeClassId}
-          onSelect={setActiveClassId}
-        />
-        <Leaderboard />
-      </aside>
+        {/* RIGHT: sidebar */}
+        <aside className="side">
+          {/* If you have a school picker, keep it; otherwise delete this line */}
+          {/* <SchoolPicker activeSchoolId={activeSchoolId} onChange={setActiveSchoolId} /> */}
+
+          {/* Classes list — make sure your ClassSidebar accepts these props */}
+          <ClassSidebar
+            activeClassId={activeClassId}
+            onSelect={setActiveClassId}
+          />
+
+          {/* If you don't have a Leaderboard component yet, comment this out */}
+          {/* <Leaderboard /> */}
+        </aside>
+      </div>
     </div>
-  </div>
 
-  {activeQuestion && (
-    <QuestionDetail q={activeQuestion} onClose={()=>setActiveQuestion(null)} />
-  )}
-</div>
-  );
+    {activeQuestion && (
+      <QuestionDetail q={activeQuestion} onClose={() => setActiveQuestion(null)} />
+    )}
+  </div>
+);
+
 }
 
 /** Firestore collections created on write:
