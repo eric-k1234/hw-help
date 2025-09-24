@@ -619,12 +619,13 @@ function Rewards(){
 
 /** App Shell */
 export default function App(){
+  // one declaration each — no duplicates
   const [activeClassId, setActiveClassId] = React.useState(null);
   const [activeQuestion, setActiveQuestion] = React.useState(null);
+  
+  // if you also use these, keep them — but don’t re-declare above/below
   const { user, loading } = useAuth();
-  const [activeClassId, setActiveClassId] = useState(null);
-  const [selected, setSelected] = useState(null);
-
+  const [selected, setSelected] = React.useState(null);
  return (
   <div className="shell">
     <div className="container">
