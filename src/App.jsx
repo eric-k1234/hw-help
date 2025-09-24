@@ -652,7 +652,6 @@ function TipsCard() {
   );
 }
 
-}
 function HeaderBar() {
   const { user } = useAuth();
 
