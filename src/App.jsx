@@ -192,7 +192,6 @@ function ClassSidebar({ activeClassId, onSelect }) {
     <Card className="pad" style={{height:"fit-content"}}>
       <div className="row-justify">
         <div style={{fontWeight:800, color:"var(--green-700)"}}>Classes</div>
-        <span className="badge">Green & Gold</span>
       </div>
       <div className="list" style={{marginTop:12}}>
         <Button className={activeClassId===null? "ghost": ""} onClick={()=>onSelect(null)}>All Questions</Button>
@@ -216,7 +215,7 @@ function NewQuestion({ currentClassId }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button className="gold" onClick={()=>setOpen(true)}>New Question</Button>
+      <Button className="Homework Helper" onClick={()=>setOpen(true)}>New Question</Button>
       {open && <NewQuestionDialog onClose={()=>setOpen(false)} currentClassId={currentClassId}/>}
     </>
   );
