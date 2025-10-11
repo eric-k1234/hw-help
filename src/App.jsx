@@ -656,43 +656,110 @@ function HeaderBar() {
   const { user } = useAuth();
 
   return (
-    <div className="app-header" style={{
-      position: "sticky", top: 0, zIndex: 50,
-      backdropFilter: "blur(14px)",
-      background: "linear-gradient(180deg, rgba(255,255,255,.75), rgba(255,255,255,.55))",
-      borderBottom: "1px solid rgba(16,185,129,.18)",
-      padding: "12px 16px", marginBottom: 12,
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      borderRadius: "0 0 18px 18px",
-      boxShadow: "0 10px 28px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.55)",
-    }}>
+    <div
+      className="app-header"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        backdropFilter: "blur(14px)",
+        background: "linear-gradient(180deg, rgba(255,255,255,.75), rgba(255,255,255,.55))",
+        borderBottom: "1px solid rgba(16,185,129,.18)",
+        padding: "12px 16px",
+        marginBottom: 12,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        borderRadius: "0 0 18px 18px",
+        boxShadow: "0 10px 28px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.55)",
+      }}
+    >
       <div style={{ fontWeight: 800, letterSpacing: ".2px" }}>
-        <span style={{
-          background: "linear-gradient(90deg, var(--au-400), var(--em-600))",
-          WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent"
-        }}>
+        <span
+          style={{
+            background: "linear-gradient(90deg, var(--au-400), var(--em-600))",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+            color: "transparent",
+          }}
+        >
           Homework Helper
         </span>
       </div>
 
-      <div>
-        {user ? <UserMenuCompact /> : <SignInButton />}
-      </div>
+      <div>{user ? <UserMenuCompact /> : <SignInButton />}</div>
     </div>
   );
 }
-<div className="row-justify" style={{ marginBottom: 10 }}>
-  <div style={{ fontWeight: 900, letterSpacing: ".3px" }}>Questions</div>
-  <div className="row" style={{ gap: 8 }}>
-    <Button
-      className="ghost"
-      onClick={() => window.dispatchEvent(new CustomEvent("open-new-question"))}
-      title="Post a new question"
-    >
-      + New Question
-    </Button>
-  </div>
-</div>
+
+/** App Shell */
+export default function App() {
+  const [activeClassId, setActiveClassId] = React.useState(null);
+  const [activeQuestion, setActiveQuestion] = React.useState(null);
+  const [showNewQuestion, setShowNewQuestion] = React.useState(false);
+  const { user } = useAuth();
+
+  React.useEffect(() => {
+    const open = () => setShowNewQuestion(true);
+    window.addEventListener("open-new-question", open);
+    return () => window.removeEventListener("open-new-question", open);
+  }, []);
+
+  return (
+    <div className="shell">
+      <HeaderBar />
+
+      <div className="container">
+        <div className="layout">
+          {/* LEFT: questions */}
+          <main className="main">
+            {/* Header ABOVE the feed (this is your Ask Question button) */}
+            <div className="row-justify" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 900, letterSpacing: ".3px" }}>Questions</div>
+              <div className="row" style={{ gap: 8 }}>
+                <Button
+                  className="green"
+                  onClick={() =>
+                    window.dispatchEvent(new CustomEvent("open-new-question"))
+                  }
+                >
+                  + Ask Question
+                </Button>
+              </div>
+            </div>
+
+            {/* The feed itself */}
+            <QuestionsFeed
+              activeClassId={activeClassId}
+              onOpen={(q) => setActiveQuestion(q)}
+            />
+          </main>
+
+          {/* RIGHT: sidebar */}
+          <aside className="side">
+            <ClassSidebar
+              activeClassId={activeClassId}
+              onSelect={setActiveClassId}
+            />
+            <TipsCard />
+            <Leaderboard />
+          </aside>
+        </div>
+      </div>
+
+      {activeQuestion && (
+        <QuestionDetail q={activeQuestion} onClose={() => setActiveQuestion(null)} />
+      )}
+
+      {showNewQuestion && (
+        <NewQuestionDialog
+          activeClassId={activeClassId}
+          onClose={() => setShowNewQuestion(false)}
+        />
+      )}
+    </div>
+  );
+}
 
 /** App Shell */
 /** App Shell */
