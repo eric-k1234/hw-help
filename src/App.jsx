@@ -685,17 +685,111 @@ function HeaderBar() {
           Homework Helper
         </span>
       </div>
+      {user && (
+  <Button
+    className="ghost"
+    onClick={() => window.dispatchEvent(new CustomEvent("open-settings"))}
+  >
+    ⚙️ Settings
+  </Button>
+)}
 
       <div>{user ? <UserMenuCompact /> : <SignInButton />}</div>
+      
     </div>
   );
 }
 
 /** App Shell */
+function SettingsDialog({ onClose }) {
+  const { user } = useAuth();
+  const [username, setUsername] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    if (user?.displayName) setUsername(user.displayName);
+  }, [user]);
+
+  const save = async () => {
+    if (!user) return alert("You must be signed in");
+    if (!username.trim()) return alert("Username cannot be empty");
+    setBusy(true);
+    setSaved(false);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(
+        userRef,
+        {
+          username: username.trim(),
+          displayName: username.trim(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      setSaved(true);
+    } catch (e) {
+      console.error(e);
+      alert("Error saving username: " + e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="card pad"
+      style={{
+        position: "fixed",
+        inset: "6% 6% auto 6%",
+        background: "linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.88))",
+        zIndex: 80,
+        maxHeight: "88vh",
+        overflow: "auto",
+        border: "1px solid rgba(16,185,129,.28)",
+        boxShadow: "0 30px 90px rgba(15,23,42,.22)",
+      }}
+    >
+      <div className="row-justify">
+        <div style={{ fontWeight: 800 }}>Settings</div>
+        <Button className="ghost" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <label className="small muted">Username</label>
+        <input
+          className="input"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Enter your username"
+        />
+
+        <div className="row" style={{ justifyContent: "flex-end", marginTop: 12 }}>
+          <Button className="green" disabled={busy} onClick={save}>
+            {busy ? "Saving..." : "Save"}
+          </Button>
+        </div>
+
+        {saved && <div className="small" style={{ color: "var(--em-600)" }}>✅ Saved!</div>}
+      </div>
+    </div>
+  );
+}
 
 /** App Shell */
 /** App Shell */
 /** App Shell */
+const [showSettings, setShowSettings] = React.useState(false);
+
+React.useEffect(() => {
+  const open = () => setShowSettings(true);
+  window.addEventListener("open-settings", open);
+  return () => window.removeEventListener("open-settings", open);
+}, []);
+
+
 export default function App() {
   const [activeClassId, setActiveClassId] = React.useState(null);
   const [activeQuestion, setActiveQuestion] = React.useState(null);
@@ -756,6 +850,7 @@ export default function App() {
           onClose={() => setShowNewQuestion(false)}
         />
       )}
+      {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
     </div>
   );
 }
