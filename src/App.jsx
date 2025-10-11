@@ -781,13 +781,6 @@ function SettingsDialog({ onClose }) {
 /** App Shell */
 /** App Shell */
 /** App Shell */
-const [showSettings, setShowSettings] = React.useState(false);
-
-React.useEffect(() => {
-  const open = () => setShowSettings(true);
-  window.addEventListener("open-settings", open);
-  return () => window.removeEventListener("open-settings", open);
-}, []);
 
 
 export default function App() {
@@ -801,7 +794,13 @@ export default function App() {
     window.addEventListener("open-new-question", open);
     return () => window.removeEventListener("open-new-question", open);
   }, []);
+  React.useEffect(() => {
+  const open = () => setShowSettings(true);
+  window.addEventListener("open-settings", open);
+  return () => window.removeEventListener("open-settings", open);
+}, []);
 
+  const [showSettings, setShowSettings] = React.useState(false);
   return (
     <div className="shell">
       <HeaderBar />
