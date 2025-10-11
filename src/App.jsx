@@ -693,6 +693,10 @@ function HeaderBar() {
 }
 
 /** App Shell */
+
+/** App Shell */
+/** App Shell */
+/** App Shell */
 export default function App() {
   const [activeClassId, setActiveClassId] = React.useState(null);
   const [activeQuestion, setActiveQuestion] = React.useState(null);
@@ -711,9 +715,7 @@ export default function App() {
 
       <div className="container">
         <div className="layout">
-          {/* LEFT: questions */}
           <main className="main">
-            {/* Header ABOVE the feed (this is your Ask Question button) */}
             <div className="row-justify" style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 900, letterSpacing: ".3px" }}>Questions</div>
               <div className="row" style={{ gap: 8 }}>
@@ -728,14 +730,12 @@ export default function App() {
               </div>
             </div>
 
-            {/* The feed itself */}
             <QuestionsFeed
               activeClassId={activeClassId}
               onOpen={(q) => setActiveQuestion(q)}
             />
           </main>
 
-          {/* RIGHT: sidebar */}
           <aside className="side">
             <ClassSidebar
               activeClassId={activeClassId}
@@ -749,69 +749,6 @@ export default function App() {
 
       {activeQuestion && (
         <QuestionDetail q={activeQuestion} onClose={() => setActiveQuestion(null)} />
-      )}
-
-      {showNewQuestion && (
-        <NewQuestionDialog
-          activeClassId={activeClassId}
-          onClose={() => setShowNewQuestion(false)}
-        />
-      )}
-    </div>
-  );
-}
-
-/** App Shell */
-/** App Shell */
-export default function App(){
-  // state (declare once)
-  const [activeClassId, setActiveClassId] = React.useState(null);
-  const [activeQuestion, setActiveQuestion] = React.useState(null);
-  const [showNewQuestion, setShowNewQuestion] = React.useState(false);
-
-  const { user, loading } = useAuth();
-
-  // global event so feed header button can open the dialog
-  React.useEffect(() => {
-    const open = () => setShowNewQuestion(true);
-    window.addEventListener("open-new-question", open);
-    return () => window.removeEventListener("open-new-question", open);
-  }, []);
-
-  return (
-    <div className="shell">
-      {/* Slim header with Sign in / User menu */}
-      <HeaderBar />
-
-      <div className="container">
-        <div className="layout">
-          {/* LEFT: questions */}
-          <main className="main">
-            {/* Tip: put the + New Question button inside QuestionsFeed header */}
-            <QuestionsFeed
-              activeClassId={activeClassId}
-              onOpen={(q) => setActiveQuestion(q)}
-              onNew={() => setShowNewQuestion(true)}  // optional direct prop
-            />
-          </main>
-
-          {/* RIGHT: sidebar */}
-          <aside className="side">
-            <ClassSidebar
-              activeClassId={activeClassId}
-              onSelect={setActiveClassId}
-            />
-            <TipsCard />
-            <Leaderboard />
-          </aside>
-        </div>
-      </div>
-
-      {activeQuestion && (
-        <QuestionDetail
-          q={activeQuestion}
-          onClose={() => setActiveQuestion(null)}
-        />
       )}
 
       {showNewQuestion && (
