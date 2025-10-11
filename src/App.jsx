@@ -782,26 +782,51 @@ function SettingsDialog({ onClose }) {
 /** App Shell */
 /** App Shell */
 
+function Safe({ children }) {
+  const [err, setErr] = React.useState(null);
+  React.useEffect(() => {
+    const onRejection = (e) => setErr(e.reason || e);
+    const onError = (e) => setErr(e.error || e.message || "Error");
+    window.addEventListener("unhandledrejection", onRejection);
+    window.addEventListener("error", onError);
+    return () => {
+      window.removeEventListener("unhandledrejection", onRejection);
+      window.removeEventListener("error", onError);
+    };
+  }, []);
+  if (err) {
+    return (
+      <div style={{ padding: 16, color: "crimson", fontFamily: "monospace" }}>
+        <div>⚠️ Runtime error</div>
+        <pre style={{ whiteSpace: "pre-wrap" }}>{String(err)}</pre>
+      </div>
+    );
+  }
+  return children;
+}
 
-export default function App() {
+ export default function App() {
+  // ⬇️ STATE FIRST
   const [activeClassId, setActiveClassId] = React.useState(null);
   const [activeQuestion, setActiveQuestion] = React.useState(null);
   const [showNewQuestion, setShowNewQuestion] = React.useState(false);
+  const [showSettings, setShowSettings] = React.useState(false);
   const { user } = useAuth();
 
+  // ⬇️ EFFECTS AFTER STATE
   React.useEffect(() => {
     const open = () => setShowNewQuestion(true);
     window.addEventListener("open-new-question", open);
     return () => window.removeEventListener("open-new-question", open);
   }, []);
-  React.useEffect(() => {
-  const open = () => setShowSettings(true);
-  window.addEventListener("open-settings", open);
-  return () => window.removeEventListener("open-settings", open);
-}, []);
 
-  const [showSettings, setShowSettings] = React.useState(false);
+  React.useEffect(() => {
+    const open = () => setShowSettings(true);
+    window.addEventListener("open-settings", open);
+    return () => window.removeEventListener("open-settings", open);
+  }, []);
   return (
+    <Safe>
     <div className="shell">
       <HeaderBar />
 
@@ -845,25 +870,14 @@ export default function App() {
 
       {showNewQuestion && (
         <NewQuestionDialog
-          activeClassId={activeClassId}
+          currentClassId={activeClassId}
           onClose={() => setShowNewQuestion(false)}
         />
       )}
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
     </div>
+    </Safe>  
   );
 }
 
 
-/** Firestore collections created on write:
- * - users { uid, displayName, photoURL, email, points, createdAt }
- * - classes { name, createdAt }
- * - questions { title, body, classId, authorId, authorName, authorPhoto, attachmentURL, postsCount, createdAt }
- * - posts { questionId, text, authorId, authorName, authorPhoto, helpful, createdAt }
- *
- * Firebase Console:
- * - Authentication → Sign-in method → Enable Google; add authorized domain: <your-username>.github.io
- * - Firestore/Storage: Start in test mode (then tighten rules)
- * GitHub Pages:
- * - vite.config.js base must match your repo name (e.g., /homework-helper-full/)
- */
